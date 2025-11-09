@@ -2,11 +2,17 @@ const mongoose = require('mongoose');
 
 const connectDB = async () => {
   try {
+    // Enable query logging in development
+    if (process.env.NODE_ENV === 'development') {
+      mongoose.set('debug', true);
+    }
+    
     const conn = await mongoose.connect(process.env.MONGO_URI, {
-      maxPoolSize: 50,
-      minPoolSize: 10,
+      // Increased pool for 3k concurrent users
+      maxPoolSize: 200,
+      minPoolSize: 20,
       serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
+      socketTimeoutMS: 45000
     });
 
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);

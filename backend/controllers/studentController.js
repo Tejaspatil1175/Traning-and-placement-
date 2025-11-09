@@ -1,4 +1,5 @@
 const Student = require('../models/Student');
+const cache = require('../utils/cache');
 
 exports.getAllStudents = async (req, res) => {
   try {
@@ -11,17 +12,17 @@ exports.getAllStudents = async (req, res) => {
       maxBacklogs, 
       placed,
       skills,
-      passingYear 
+      passingYear,
+      sortBy = 'cgpa',
+      sortOrder = 'desc',
+      cursor // For cursor-based pagination
     } = req.query;
 
     const query = {};
 
+    // Use text search instead of regex for better performance
     if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
-        { rollNo: { $regex: search, $options: 'i' } }
-      ];
+      query.$text = { $search: search };
     }
 
     if (branch) {
@@ -49,22 +50,47 @@ exports.getAllStudents = async (req, res) => {
       query.passingYear = parseInt(passingYear);
     }
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    // Cursor-based pagination for better performance
+    if (cursor) {
+      query._id = { $gt: cursor };
+    }
 
+    const limitNum = Math.min(parseInt(limit), 100); // Max 100 per page
+    const sortField = sortBy === 'cgpa' ? 'cgpa' : 'createdAt';
+    const sortDirection = sortOrder === 'desc' ? -1 : 1;
+
+    // Use projection to reduce data transfer
     const students = await Student.find(query)
-      .sort({ cgpa: -1, name: 1 })
-      .limit(parseInt(limit))
-      .skip(skip)
+      .sort({ [sortField]: sortDirection, _id: 1 })
+      .limit(limitNum)
+      .select('-__v') // Exclude version key
       .lean();
 
-    const total = await Student.countDocuments(query);
+    // Only count total if needed (expensive operation)
+    let total = null;
+    if (page == 1) {
+      // Cache total count for 5 minutes
+      const cacheKey = `students:count:${JSON.stringify(query)}`;
+      total = await cache.getOrSet(
+        cacheKey,
+        () => Student.countDocuments(query),
+        300
+      );
+    }
+
+    // Get next cursor (last document ID)
+    const nextCursor = students.length > 0 
+      ? students[students.length - 1]._id 
+      : null;
 
     res.status(200).json({
       success: true,
       count: students.length,
       total,
       page: parseInt(page),
-      pages: Math.ceil(total / parseInt(limit)),
+      limit: limitNum,
+      nextCursor,
+      hasMore: students.length === limitNum,
       data: students
     });
   } catch (error) {
@@ -250,7 +276,12 @@ exports.updateMyProfile = async (req, res) => {
 
 exports.getBranches = async (req, res) => {
   try {
-    const branches = await Student.distinct('branch');
+    // Cache branches for 1 hour (rarely changes)
+    const branches = await cache.getOrSet(
+      'branches:list',
+      () => Student.distinct('branch'),
+      3600
+    );
 
     res.status(200).json({
       success: true,

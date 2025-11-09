@@ -85,9 +85,34 @@ const studentSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// Compound indexes for common queries
 studentSchema.index({ cgpa: -1, backlogs: 1 });
 studentSchema.index({ branch: 1, cgpa: -1 });
 studentSchema.index({ placed: 1, passingYear: 1 });
 studentSchema.index({ skills: 1 });
+
+// Text index for fast search (replaces regex)
+studentSchema.index({ 
+  name: 'text', 
+  email: 'text', 
+  rollNo: 'text' 
+}, {
+  weights: {
+    rollNo: 10,  // Highest priority
+    email: 5,
+    name: 3
+  }
+});
+
+// Partial index for active students (reduces index size)
+studentSchema.index(
+  { placed: 1, cgpa: -1 },
+  { partialFilterExpression: { placed: false } }
+);
+
+// Add lean() helper for better performance
+studentSchema.statics.findLean = function(query = {}) {
+  return this.find(query).lean();
+};
 
 module.exports = mongoose.model('Student', studentSchema);

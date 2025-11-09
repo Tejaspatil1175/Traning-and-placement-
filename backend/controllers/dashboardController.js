@@ -1,20 +1,66 @@
 const Student = require('../models/Student');
 const Company = require('../models/Company');
+const cache = require('../utils/cache');
 
 exports.getDashboardStats = async (req, res) => {
   try {
-    const [
-      totalStudents,
-      placedStudents,
-      totalCompanies,
-      upcomingCompanies,
-      branches,
-      recentPlacements
-    ] = await Promise.all([
-      Student.countDocuments(),
-      Student.countDocuments({ placed: true }),
-      Company.countDocuments(),
-      Company.countDocuments({ status: 'upcoming' }),
+    // Try to get from cache first (5 min TTL)
+    const cachedStats = cache.get('dashboard:stats');
+    if (cachedStats) {
+      return res.status(200).json({
+        success: true,
+        cached: true,
+        data: cachedStats
+      });
+    }
+
+    // Optimized: Reduce parallel queries and use aggregation
+    const [studentStats, companyStats, branches, recentPlacements] = await Promise.all([
+      // Single aggregation for student stats
+      Student.aggregate([
+        {
+          $facet: {
+            counts: [
+              {
+                $group: {
+                  _id: null,
+                  total: { $sum: 1 },
+                  placed: {
+                    $sum: { $cond: ['$placed', 1, 0] }
+                  }
+                }
+              }
+            ],
+            cgpaDistribution: [
+              {
+                $bucket: {
+                  groupBy: '$cgpa',
+                  boundaries: [0, 5, 6, 7, 8, 9, 10],
+                  default: 'Other',
+                  output: {
+                    count: { $sum: 1 }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ]),
+      
+      // Company stats
+      Company.aggregate([
+        {
+          $facet: {
+            total: [{ $count: 'count' }],
+            upcoming: [
+              { $match: { status: 'upcoming' } },
+              { $count: 'count' }
+            ]
+          }
+        }
+      ]),
+      
+      // Branch-wise stats
       Student.aggregate([
         {
           $group: {
@@ -28,6 +74,8 @@ exports.getDashboardStats = async (req, res) => {
         },
         { $sort: { count: -1 } }
       ]),
+      
+      // Recent placements
       Student.find({ placed: true })
         .select('name rollNo branch placedCompany package')
         .sort({ updatedAt: -1 })
@@ -35,38 +83,37 @@ exports.getDashboardStats = async (req, res) => {
         .lean()
     ]);
 
+    const totalStudents = studentStats[0]?.counts[0]?.total || 0;
+    const placedStudents = studentStats[0]?.counts[0]?.placed || 0;
+    const totalCompanies = companyStats[0]?.total[0]?.count || 0;
+    const upcomingCompanies = companyStats[0]?.upcoming[0]?.count || 0;
+    const cgpaDistribution = studentStats[0]?.cgpaDistribution || [];
+
     const placementPercentage = totalStudents > 0 
       ? ((placedStudents / totalStudents) * 100).toFixed(2)
       : 0;
 
-    const cgpaDistribution = await Student.aggregate([
-      {
-        $bucket: {
-          groupBy: '$cgpa',
-          boundaries: [0, 5, 6, 7, 8, 9, 10],
-          default: 'Other',
-          output: {
-            count: { $sum: 1 }
-          }
-        }
-      }
-    ]);
+    const result = {
+      overview: {
+        totalStudents,
+        placedStudents,
+        unplacedStudents: totalStudents - placedStudents,
+        placementPercentage: parseFloat(placementPercentage),
+        totalCompanies,
+        upcomingCompanies
+      },
+      branchWise: branches,
+      cgpaDistribution,
+      recentPlacements
+    };
+
+    // Cache for 5 minutes
+    cache.set('dashboard:stats', result, 300);
 
     res.status(200).json({
       success: true,
-      data: {
-        overview: {
-          totalStudents,
-          placedStudents,
-          unplacedStudents: totalStudents - placedStudents,
-          placementPercentage: parseFloat(placementPercentage),
-          totalCompanies,
-          upcomingCompanies
-        },
-        branchWise: branches,
-        cgpaDistribution,
-        recentPlacements
-      }
+      cached: false,
+      data: result
     });
   } catch (error) {
     console.error('Dashboard stats error:', error);
