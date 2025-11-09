@@ -1,52 +1,62 @@
-🎓 Training & Placement Automation System (MERN Stack)
-🚀 Digitizing the Campus Placement Process
-Show Image
-Show Image
-Show Image
-Show Image
-Show Image
-Show Image
+# 🎓 Training & Placement Automation System (MERN Stack)
+## 🚀 Digitizing the Campus Placement Process
 
-🧠 Project Overview
-Colleges manage student academic and placement data in Excel sheets. During recruitment, companies specify eligibility criteria such as CGPA, branch, backlogs, and skills. Filtering students manually from large Excel files is time-consuming, error-prone, and inefficient.
-This project automates the entire process using the MERN Stack.
-Admins can upload Excel data, manage students, add companies, apply criteria, and instantly generate eligible student lists.
-It supports role-based login (Admin, TPO, Student) and scales for 10,000+ students.
+![Banner Image](https://via.placeholder.com/1000x300?text=Training+%26+Placement+Automation+System)
 
-🏗️ Tech Stack
-LayerTechnologyFrontendReact.js + Tailwind CSS / Material UIBackendNode.js + Express.jsDatabaseMongoDB (Atlas)File UploadMulter + XLSX (Excel-to-JSON)AuthenticationJWT + bcryptAPI TestingPostmanDeploymentRender (Backend) + Vercel (Frontend)
+## 🧠 Project Overview
+Colleges currently manage student academic and placement data primarily in Excel sheets. During recruitment drives, companies specify varying eligibility criteria (e.g., minimum CGPA, specific branches, maximum backlogs, required skills). Filtering thousands of students manually from these Excel files is time-consuming, error-prone, and inefficient.
 
-🧩 Core Features
-👨‍💼 Admin / TPO Panel
+This project automates the entire process using the **MERN Stack**. It allows Admins/TPOs to upload Excel data, manage student profiles, add companies with specific criteria, and instantly generate eligible student lists. The system supports role-based logins (Admin, TPO, Student) and is designed to scale for 10,000+ students.
 
-✅ Upload Excel file → auto-save to MongoDB
-✅ Add/Update/Delete student profiles
-✅ Add companies & set eligibility criteria
-✅ Auto-generate eligible student list
-✅ Export eligible lists (Excel/PDF)
-✅ Dashboard showing total students, placements, and active companies
+---
 
-🎓 Student Panel
+## 🏗️ Tech Stack
 
-✅ Login & view profile
-✅ Update skills, resume, certifications
-✅ See eligible companies
-✅ Receive notifications for drives
+| Layer | Technology |
+| :--- | :--- |
+| **Frontend** | React.js + Tailwind CSS / Material UI |
+| **Backend** | Node.js + Express.js |
+| **Database** | MongoDB (Atlas) |
+| **File Upload** | Multer + XLSX (Excel-to-JSON) |
+| **Authentication** | JWT + bcryptjs |
+| **API Testing** | Postman |
+| **Deployment** | Render (Backend) + Vercel (Frontend) |
 
+---
 
-⚙️ System Architecture
+## 🧩 Core Features
+
+### 👨‍💼 Admin / TPO Panel
+- ✅ Upload Excel file → auto-save to MongoDB bulk data.
+- ✅ Add/Update/Delete student profiles manually.
+- ✅ Add companies & set detailed eligibility criteria.
+- ✅ Auto-generate eligible student lists instantly.
+- ✅ Export eligible lists to Excel/PDF for recruiters.
+- ✅ Dashboard showing total students, placement stats, and active companies.
+
+### 🎓 Student Panel
+- ✅ Secure login & profile view.
+- ✅ Update skills, resume links, and certifications.
+- ✅ View list of companies they are eligible for.
+- ✅ Receive notifications for upcoming drives.
+
+---
+
+## ⚙️ System Architecture
+
+```plaintext
 ┌─────────────────────────────────────────────────────────────┐
-│                      FRONTEND (React)                       │
+│                     FRONTEND (React)                        │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
 │  │ Admin Panel  │  │  TPO Panel   │  │Student Panel │       │
 │  └──────────────┘  └──────────────┘  └──────────────┘       │
 │         │                  │                  │             │
 │         └──────────────────┴──────────────────┘             │
-│                           ▼                                 │
-│                    Axios API Calls                          │
+│                            ▼                                │
+│                   Axios API Calls                           │
 └─────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
+                             │
+                             ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                   BACKEND (Node + Express)                  │
 │  ┌──────────────────────────────────────────────────────┐   │
@@ -59,15 +69,15 @@ LayerTechnologyFrontendReact.js + Tailwind CSS / Material UIBackendNode.js + Exp
 │  └──────────┘  └──────────┘  └──────────┘  └──────────┘     │
 │       │              │              │             │         │
 │       └──────────────┴──────────────┴─────────────┘         │
-│                          ▼                                  │
-│              Controllers & Business Logic                   │
-│                          ▼                                  │
+│                            ▼                                │
+│             Controllers & Business Logic                    │
+│                            ▼                                │
 │  ┌──────────────────────────────────────────────────────┐   │
-│  │         Mongoose ODM (Models & Schemas)              │   │
+│  │          Mongoose ODM (Models & Schemas)             │   │
 │  └──────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
+                             │
+                             ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                   DATABASE (MongoDB Atlas)                  │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐                   │
